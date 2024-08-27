@@ -1,4 +1,5 @@
-import TodoItem from './Todoitem';
+import { ItemCounts } from '../model/ItemCounts';
+import TodoItem from '../model/Todoitem';
 
 class TodoCollection {
   private nextId: number = 1;
@@ -38,6 +39,14 @@ class TodoCollection {
         this.itemMap.delete(item.id);
       }
     });
+  }
+
+  // getItemCounts():{total: number, incomplete: number}{
+  getItemCounts(): ItemCounts {
+    return {
+      total: this.itemMap.size,
+      incomplete: this.getTodoItems(false).length, //완료되지 않은 항목에 대한 갯수를 보여즘
+    };
   }
 
   markComplete(id: number, complete: boolean): void {
