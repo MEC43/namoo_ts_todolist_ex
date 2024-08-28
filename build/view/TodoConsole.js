@@ -30,9 +30,10 @@ const inquirer = __importStar(require("inquirer"));
 const TodoCollection_1 = __importDefault(require("../service/TodoCollection"));
 const Todoitem_1 = __importDefault(require("../model/Todoitem"));
 const data_1 = require("../data");
-const Command_1 = require("../model/Command");
+const Commands_1 = require("../model/Commands");
 class TodoConsole {
     constructor() {
+        this.showCompleted = true; // showCompleted의 초기값
         const sampleTodos = data_1.data.map((item) => new Todoitem_1.default(item.id, item.task, item.complete));
         this.todoCollection = new TodoCollection_1.default('My Todo List', sampleTodos);
     }
@@ -40,7 +41,7 @@ class TodoConsole {
         console.log(`====${this.todoCollection.userName}====` +
             `(${this.todoCollection.getItemCounts().incomplete} items todo)`);
         this.todoCollection
-            .getTodoItems(true)
+            .getTodoItems(this.showCompleted)
             .forEach((item) => item.printDetails());
     }
     //사용자에게 입력받는 메서드
@@ -52,12 +53,72 @@ class TodoConsole {
             type: 'list',
             name: 'command',
             message: 'Choose option',
-            choices: Object.values(Command_1.Commands),
+            choices: Object.values(Commands_1.Commands),
         })
             .then((answers) => {
-            if (answers['command'] !== Command_1.Commands.Quit) {
-                this.promptUser();
+            // if (answers['command'] !== Commands.Quit) {
+            //   this.promptUser();
+            // }
+            switch (answers['command']) {
+                case Commands_1.Commands.Toggle:
+                    this.showCompleted = !this.showCompleted;
+                    this.promptUser();
+                    break;
+                case Commands_1.Commands.Add:
+                    this.promptAdd();
+                    break;
+                case Commands_1.Commands.Purge:
+                    this.todoCollection.removeComplete();
+                    this.promptUser();
+                    break;
+                case Commands_1.Commands.Complete:
+                    if (this.todoCollection.getItemCounts().incomplete > 0) {
+                        this.promptComplete();
+                    }
+                    else {
+                        this.promptUser();
+                    }
+                    break;
             }
+        });
+    }
+    //할 일 추가를 위한 새로운 메서드 생성
+    promptAdd() {
+        console.clear();
+        inquirer
+            .prompt({
+            type: 'input',
+            name: 'add',
+            message: 'Enter Task',
+        })
+            .then((answers) => {
+            if (answers['add'] !== '') {
+                this.todoCollection.addTodo(answers['add']);
+            }
+            this.promptUser();
+        });
+    }
+    promptComplete() {
+        console.clear();
+        inquirer
+            .prompt({
+            type: 'checkbox',
+            name: 'complete',
+            message: 'Mark Tasks Complete',
+            choices: this.todoCollection
+                .getTodoItems(this.showCompleted)
+                .map((item) => ({
+                name: item.task,
+                value: item.id,
+                checked: item.complete,
+            })),
+        })
+            .then((answers) => {
+            let completedTasks = answers['complete']; //answers를 number의 배열타입이라고 단언
+            this.todoCollection.getTodoItems(true).forEach((item) => {
+                this.todoCollection.markComplete(item.id, completedTasks.find((id) => id === item.id) != undefined);
+            });
+            this.promptUser();
         });
     }
 }
